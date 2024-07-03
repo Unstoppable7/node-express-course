@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hello World</title>
+  </head>
+  <body>
+    <h1>Hello World</h1>
+    <button id="products">Show Products</button>
+    <div id="products-container"></div>
+    <script>
+      const button = document.getElementById("products");
+      button.addEventListener("click", onClick);
+
+      async function onClick() {
+        const url = "http://localhost:3000/api/v1/products";
+        try {
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
+          }
+          const jsonRsp = await response.json();
+          const productsContainer =
+            document.getElementById("products-container");
+
+          jsonRsp.forEach((product) => {
+            const productDiv = document.createElement("div");
+            productDiv.innerHTML = `
+                  <h3>${product.name}</h3>
+                  <p>Precio: ${product.price}</p>
+                  <p>Descripción: ${product.desc}</p>
+              `;
+            productsContainer.appendChild(productDiv);
+          });
+        } catch (error) {
+          console.error(error.message);
+        }
+      }
+    </script>
+  </body>
+</html>
