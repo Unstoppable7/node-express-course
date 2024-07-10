@@ -13,45 +13,48 @@ app.get("/api/v1/products", (req, res) => {
 });
 
 app.get("/api/v1/products/:productID", (req, res) => {
-  const idToFind = parseInt(req.params.productID);
+  const idToFind = Number(req.params.productID);
   const product = products.find((p) => p.id === idToFind);
   if (!product) {
-    res.json({ message: "That product was not found." });
-  } else {
-    res.json(product);
+    return res.status(404).send("Product does not exist");
   }
+  return res.json(product);
 });
 
 app.get("/api/v1/query", (req, res) => {
-  let response = [];
-  const search = req.query.search;
-  const limit = req.query.limit;
+  let response = [...products];
 
-  if (search != "") {
-    if (search.slice(0, 4) === "nam=") {
-      response = products.filter((product) =>
-        product.name.includes(search.slice(4))
-      );
-    } else if (search.slice(0, 5) === "desc=") {
-      response = products.filter((product) =>
-        product.desc.includes(search.slice(5))
-      );
-    } else if (
-      search.slice(0, 6) === "price>" &&
-      !isNaN(parseInt(search.slice(6)))
-    ) {
-      response = products.filter((product) => product.price > search.slice(6));
-    } else if (
-      search.slice(0, 6) === "price<" &&
-      !isNaN(parseInt(search.slice(6)))
-    ) {
-      response = products.filter((product) => product.price < search.slice(6));
+  const { search, limit, regex, priceGreaterThan, priceLessThan } = req.query;
+  if (search) {
+    response = response.filter((p) => p.name.includes(search));
+  }
+  if (limit) {
+    response = response.slice(0, Number(limit));
+  }
+  if (regex) {
+    try {
+      let regexObj = new RegExp(regex);
+      response = response.filter((p) => regexObj.test(p.name));
+    } catch (e) {
+      return res
+        .status(200)
+        .json({ sucess: true, message: "Invalid regex", data: [] });
     }
   }
-  if (limit != "" && !isNaN(parseInt(limit))) {
-    response = response.slice(0, parseInt(limit));
+  if (priceGreaterThan) {
+    response = products.filter((p) => p.price > Number(priceGreaterThan));
   }
-  res.json(response);
+  if (priceLessThan) {
+    response = products.filter((p) => p.price < Number(priceLessThan));
+  }
+  if (response.length < 1) {
+    return res.status(200).json({
+      sucess: true,
+      message: "No products matched your search",
+      data: [],
+    });
+  }
+  res.status(200).json(response);
 });
 
 app.all("*", (req, res) => {
