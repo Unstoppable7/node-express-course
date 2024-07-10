@@ -1,60 +1,34 @@
 const express = require("express");
 const app = express();
-const { products } = require("./data");
+const peopleRouter = require("./routes/people");
 
-app.use(express.static("./public"));
+app.use(logger);
+app.use(express.static("./methods-public"));
+//allows to access req.body data sended by traditional form method
+app.use(express.urlencoded({ extended: false }));
+//allows to access req.body data sended by javascript method
+app.use(express.json());
+// must be after the parsing of the body
+app.use("/api/v1/people", peopleRouter);
 
-app.get("/api/v1/test", (req, res) => {
-  res.json({ message: "It worked!" });
+function logger(req, res, next) {
+  const method = req.method;
+  const url = req.url;
+  const time = new Date().getFullYear();
+  console.log(method, url, time);
+  next();
+}
+
+app.get("/", (req, res) => {
+  res.send("Home page");
 });
 
-app.get("/api/v1/products", (req, res) => {
-  res.json(products);
-});
-
-app.get("/api/v1/products/:productID", (req, res) => {
-  const idToFind = Number(req.params.productID);
-  const product = products.find((p) => p.id === idToFind);
-  if (!product) {
-    return res.status(404).send("Product does not exist");
+app.post("/login", (req, res) => {
+  const { name } = req.body;
+  if (name) {
+    return res.status(200).send(`Welcome ${name}`);
   }
-  return res.json(product);
-});
-
-app.get("/api/v1/query", (req, res) => {
-  let response = [...products];
-
-  const { search, limit, regex, priceGreaterThan, priceLessThan } = req.query;
-  if (search) {
-    response = response.filter((p) => p.name.includes(search));
-  }
-  if (limit) {
-    response = response.slice(0, Number(limit));
-  }
-  if (regex) {
-    try {
-      let regexObj = new RegExp(regex);
-      response = response.filter((p) => regexObj.test(p.name));
-    } catch (e) {
-      return res
-        .status(200)
-        .json({ sucess: true, message: "Invalid regex", data: [] });
-    }
-  }
-  if (priceGreaterThan) {
-    response = products.filter((p) => p.price > Number(priceGreaterThan));
-  }
-  if (priceLessThan) {
-    response = products.filter((p) => p.price < Number(priceLessThan));
-  }
-  if (response.length < 1) {
-    return res.status(200).json({
-      sucess: true,
-      message: "No products matched your search",
-      data: [],
-    });
-  }
-  res.status(200).json(response);
+  res.status(400).json({ success: false, msg: "Please provide a name" });
 });
 
 app.all("*", (req, res) => {
